@@ -139,11 +139,12 @@ class FeeOrder extends Common {
         
         $params = array();
         $params['room_id'] = $room_id;
-        //$params['pay_method_id'] = 1;
+        $params['pay_method_id'] = 2;
         $params['use_real_money'] = $total_use_real_money;
-        //$params['fetch_fee_time'] = strtotime(date('Y-m-d'));
-        //$params['remark'] = '缴费';
-        //$params['tmp_order'] = json_encode($tmp_order);
+        $params['fetch_fee_time'] = strtotime(date('Y-m-d'));
+        $params['remark'] = '缴费';
+        $params['tmp_order'] = json_encode($tmp_order);
+        $params['status'] = 0;
 
         $openid = input('openid');
    
@@ -151,22 +152,25 @@ class FeeOrder extends Common {
             print_r($this->returnJson(array(),'参数错误',0)); 
             die;
         }
-        $total_fee = $total_use_real_money;
-        $order_id = 'HY'.date('YmdHis',time()).'-'.rand(10,99);
+        $total_fee = $total_use_real_money*100;
+  
+        $create_order = $this->callApi('fee_order/createFeeOrder', $params, 'POST');
+        if($create_order['status'] != 1){
+            print_r($this->returnJson(array(),$create_order['message'],0)); 
+            die;
+        }
         
-        $this->pay($total_fee,$openid,$order_id,$params);
+        $order_array = $create_order['data'];
+
         
-//        $create_order = $this->callApi('fee_order/createFeeOrder', $params, 'POST');
-//        if($create_order['status'] == 1){
-//            $this->success('',null,array('fee_order_id'=>$create_order['data']['fee_order_id']));
-//        }else{
-//            $this->error($create_order['message']);
-//        }
+        $this->pay($total_fee,$openid,$order_array['fee_order_id'],$order_array);
+        
+        
     }
     
     
     /* 首先在服务器端调用微信【统一下单】接口，返回prepay_id和sign签名等信息给前端，前端调用微信支付接口 */
-    public function pay($total_fee,$openid,$order_id,$posts){
+    public function pay($total_fee,$openid,$order_id,$post){
 
         if(empty($total_fee)){
             echo json_encode(array('state'=>0,'Msg'=>'金额有误'));exit;
@@ -177,24 +181,25 @@ class FeeOrder extends Common {
         if(empty($order_id)){
             echo json_encode(array('state'=>0,'Msg'=>'自定义订单有误'));exit;
         }
-        $appid =        'wx0e80f191273e8063';//如果是公众号 就是公众号的appid;小程序就是小程序的appid
-        $body =         '订单缴费';
-        $mch_id =       '1526381861';
-        $KEY = 'c5594d069baca14fd37d7383863bfe30';
+        $appid =        config('wx_setting.appid');//如果是公众号 就是公众号的appid;小程序就是小程序的appid
+        $body =         '物业缴费订单';
+        $mch_id =       config('wx_setting.mch_id');
+        $KEY = config('wx_setting.wxpay_key');
         $nonce_str =    md5(uniqid(microtime(true),true));//随机字符串32
-        $notify_url =   'http://xiaoshetuan.loulilouwai.net/xiao_notify_url.php';  //支付完成回调地址url,不能带参数
-        $out_trade_no = $order_id;//商户订单号
+        $notify_url =   'http://jouhu.com/lllwupapi/public/index.php/jmobile/fee_order/xiao_notify_url';  //支付完成回调地址url,不能带参数
+        $out_trade_no = $post['order_number'];//商户订单号
         $spbill_create_ip = $_SERVER['SERVER_ADDR'];
         $trade_type = 'JSAPI';//交易类型 默认JSAPI
 
-        $attach = implode('|', $posts);
+        $attach = implode('-|', $post);
+        
 
-
+        $post = array();
         //这里是按照顺序的 因为下面的签名是按照(字典序)顺序 排序错误 肯定出错
         $post['appid'] = $appid;
         $post['body'] = $body;
         $post['mch_id'] = $mch_id;
-        $post['attach'] = implode('-|', $posts);
+        $post['attach'] = $attach;
         $post['nonce_str'] = $nonce_str;//随机字符串
         $post['notify_url'] = $notify_url;
         $post['openid'] = $openid;
@@ -203,7 +208,6 @@ class FeeOrder extends Common {
         $post['total_fee'] = intval($total_fee);        //总金额 最低为一分钱 必须是整数
         $post['trade_type'] = $trade_type;
         $sign = $this->MakeSign($post,$KEY);              //签名
-        $this->sign = $sign;
     
         $post_xml = '<xml>
                <appid>'.$appid.'</appid>
@@ -226,7 +230,7 @@ class FeeOrder extends Common {
        
         $array = $this->xml2array($xml);               //将【统一下单】api返回xml数据转换成数组，全要大写
         $array=array_change_key_case($array,CASE_UPPER);
-         
+  
         if($array['RETURN_CODE'] == 'SUCCESS' && $array['RESULT_CODE'] == 'SUCCESS'){
             $time = time();
             $tmp=array();                            //临时数组用于签名
@@ -250,7 +254,9 @@ class FeeOrder extends Common {
             $data['RETURN_CODE'] = $array['RETURN_CODE'];
             $data['RETURN_MSG'] = $array['RETURN_MSG'];
         }
-        echo json_encode($data);
+        
+        print_r($this->returnJson($data,'获取成功',1)); 
+        die;
     }
     
     /**
@@ -311,17 +317,6 @@ class FeeOrder extends Common {
     }
     //获取xml里面数据，转换成array
     private function xml2array($xml){
-//        $p = xml_parser_create();
-//        xml_parse_into_struct($p, $xml, $vals, $index);
-//        xml_parser_free($p);
-//        $data = "";
-//        foreach ($index as $key=>$value) {
-//            if($key == 'xml' || $key == 'XML') continue;
-//            $tag = $vals[$value[0]]['tag'];
-//            $value = $vals[$value[0]]['value'];
-//            $data[$tag] = $value;
-//        }
-//        return $data;
         //将XML转为array
         //禁止引用外部xml实体
         libxml_disable_entity_loader(true);
@@ -343,71 +338,105 @@ class FeeOrder extends Common {
         $data = json_decode(json_encode(simplexml_load_string($xml, 'SimpleXMLElement', LIBXML_NOCDATA)), true);
         return $data;
     }
-        /* 微信支付完成，回调地址url方法  xiao_notify_url() */
+    
+    /* 微信支付完成，回调地址url方法  xiao_notify_url() */
     public function xiao_notify_url(){
-        $post = post_data();    //接受POST数据XML个数
-/*
-
-function post_data(){
-$receipt = $_REQUEST;
-if($receipt==null){
-$receipt = file_get_contents("php://input");
-if($receipt == null){
-$receipt = $GLOBALS['HTTP_RAW_POST_DATA'];
-}
-}
-return $receipt;
-}
-
-*/
-
-        $post_data = $this->xml_to_array($post);   //微信支付成功，返回回调地址url的数据：XML转数组Array
-        $postSign = $post_data['sign'];
-        unset($post_data['sign']);
-        
-        /* 微信官方提醒：
-         *  商户系统对于支付结果通知的内容一定要做【签名验证】,
-         *  并校验返回的【订单金额是否与商户侧的订单金额】一致，
-         *  防止数据泄漏导致出现“假通知”，造成资金损失。
-         */
-        ksort($post_data);// 对数据进行排序
-        $str = $this->ToUrlParams($post_data);//对数组数据拼接成key=value字符串
-        $user_sign = strtoupper(md5($post_data));   //再次生成签名，与$postSign比较
-        
-        $where['crsNo'] = $post_data['out_trade_no'];
-       
-        
-        if($post_data['return_code']=='SUCCESS'&&$postSign){
-            /*
-            * 首先判断，订单是否已经更新为ok，因为微信会总共发送8次回调确认
-            * 其次，订单已经为ok的，直接返回SUCCESS
-            * 最后，订单没有为ok的，更新状态为ok，返回SUCCESS
-            */
-            
-                    $this->return_success();
-            
-            
-        }else{
-            echo '微信支付失败';
+        //获取接口数据，如果$_REQUEST拿不到数据，则使用file_get_contents函数获取
+        $post = $_REQUEST;
+        if (empty($post)) {
+            $post = file_get_contents("php://input");
         }
+
+        if (empty($post)) {
+            $post = isset($GLOBALS['HTTP_RAW_POST_DATA']) ? $GLOBALS['HTTP_RAW_POST_DATA'] : '';
+        }
+        
+        if (empty($post) || $post == null || $post == '') {
+            //阻止微信接口反复回调接口  文档地址 https://pay.weixin.qq.com/wiki/doc/api/H5.php?chapter=9_7&index=7，下面这句非常重要!!!
+            $str='<xml><return_code><![CDATA[SUCCESS]]></return_code><return_msg><![CDATA[OK]]></return_msg></xml>';  
+            echo $str;
+            exit('Notify 非法回调');
+        }
+        /*****************微信回调返回数据样例*******************
+        $post = '<xml>
+           <return_code><![CDATA[SUCCESS]]></return_code>
+           <return_msg><![CDATA[OK]]></return_msg>
+           <appid><![CDATA[wx2421b1c4370ec43b]]></appid>
+           <mch_id><![CDATA[10000100]]></mch_id>
+           <nonce_str><![CDATA[IITRi8Iabbblz1Jc]]></nonce_str>
+           <sign><![CDATA[7921E432F65EB8ED0CE9755F0E86D72F]]></sign>
+           <result_code><![CDATA[SUCCESS]]></result_code>
+           <prepay_id><![CDATA[wx201411101639507cbf6ffd8b0779950874]]></prepay_id>
+           <trade_type><![CDATA[APP]]></trade_type>
+           </xml>';
+        *************************微信回调返回*****************/
+
+       libxml_disable_entity_loader(true); //禁止引用外部xml实体
+
+       $xml = simplexml_load_string($post, 'SimpleXMLElement', LIBXML_NOCDATA);//XML转数组
+
+       $post_data = (array)$xml;
+       
+       /** 解析出来的数组
+        *Array
+        * (
+        * [appid] => wx1c870c0145984d30
+        * [bank_type] => CFT
+        * [cash_fee] => 100
+        * [fee_type] => CNY
+        * [is_subscribe] => N
+        * [mch_id] => 1297210301
+        * [nonce_str] => gkq1x5fxejqo5lz5eua50gg4c4la18vy
+        * [openid] => olSGW5BBvfep9UhlU40VFIQlcvZ0
+        * [out_trade_no] => fangchan_588796
+        * [result_code] => SUCCESS
+        * [return_code] => SUCCESS
+        * [sign] => F6890323B0A6A3765510D152D9420EAC
+        * [time_end] => 20180626170839
+        * [total_fee] => 100
+        * [trade_type] => JSAPI
+        * [transaction_id] => 4200000134201806265483331660
+        * )
+        *
+        */
+       //平台支付key
+        $wxpay_key = config('wx_setting.wxpay_key');
+
+        //接收到的签名
+        $post_sign = $post_data['sign'];
+        unset($post_data['sign']);
+
+        //重新生成签名
+        $newSign = $this->MakeSign($post_data,$wxpay_key);
+
+        //签名统一，则更新数据库
+        if($post_sign == $newSign){
+            $attach = explode(',', $post_data['attach']);
+            $data = array();
+            $data['fee_order_id'] = $attach['0'];
+            $data['out_trade_no'] = $post_data['out_trade_no'];
+            $data['wechat_transaction_id'] = $post_data['wechat_transaction_id'];
+            $wxUpOrder = $this->callApi('fee_order/wxUpOrder', $data, 'PUT');
+            //print_r($res);die;
+            if($wxUpOrder['status'] == 1){
+                //阻止微信接口反复回调接口  文档地址 https://pay.weixin.qq.com/wiki/doc/api/H5.php?chapter=9_7&index=7，下面这句非常重要!!!
+                $str='<xml><return_code><![CDATA[SUCCESS]]></return_code><return_msg><![CDATA[OK]]></return_msg></xml>';  
+                echo $str;
+                die;
+            }
+     
+            
+           
+
+
+        }
+    
+   
+    
     }
     
-    /*
-     * 给微信发送确认订单金额和签名正确，SUCCESS信息 -xzz0521
-     */
-    private function return_success(){
-        $return['return_code'] = 'SUCCESS';
-        $return['return_msg'] = 'OK';
-        $xml_post = '<xml>
-                    <return_code>'.$return['return_code'].'</return_code>
-                    <return_msg>'.$return['return_msg'].'</return_msg>
-                    </xml>';
-        echo $xml_post;exit;
-    }
-  
     
-    
-    
-    
+
+
     
 }

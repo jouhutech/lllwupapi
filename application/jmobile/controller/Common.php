@@ -44,9 +44,9 @@ class Common extends Controller {
         
             
         if (time() > ($file_result['expires'] - 10)){          //token过期, 重新获取
-            $post_data['grant_type'] = 'client_credentials';
-            $post_data['client_id'] = 'test';
-            $post_data['client_secret'] = 'test';
+            $post_data['grant_type'] = config('client_auth.grant_type');
+            $post_data['client_id'] = config('client_auth.client_id');
+            $post_data['client_secret'] = config('client_auth.client_secret');
 
             $res = $this->curlCommit('oauth/getAccessToken', $post_data, 'POST');
 
@@ -145,70 +145,69 @@ class Common extends Controller {
         return $res;
     }
     
-    
-    //����
+  //金额转换大写函数
     function convertAmountToCn($amount, $type = 0) {
-        // �ж�����Ľ���Ƿ�Ϊ���ֻ������ַ���
+        // 判断输出的金额是否为数字或数字字符串
         if(!is_numeric($amount)){
-            return "Ҫת���Ľ��ֻ��Ϊ����!";
+            return "要转换的金额只能为数字!";
         }
      
-        // ���Ϊ0,��ֱ�����"��Ԫ��"
+        // 金额为0,则直接输出"零元整"
         if($amount == 0) {
-            return "�������Ԫ��";
+            return "人民币零元整";
         }
      
-        // ����Ϊ����
+        // 金额不能为负数
         if($amount < 0) {
-            return "Ҫת���Ľ���Ϊ����!";
+            return "要转换的金额不能为负数!";
         }
      
-        // ���ܳ�������,��12λ
+        // 金额不能超过万亿,即12位
         if(strlen($amount) > 12) {
-            return "Ҫת���Ľ���Ϊ���ڼ����߽��!";
+            return "要转换的金额不能为万亿及更高金额!";
         }
      
-        // Ԥ��������ת��������
-        $digital = array('��', 'Ҽ', '��', '��', '��', '��', '½', '��', '��', '��');
-        // Ԥ���嵥λת��������
-        $position = array('Ǫ', '��', 'ʰ', '��', 'Ǫ', '��', 'ʰ', '��', 'Ǫ', '��', 'ʰ', 'Ԫ');
+        // 预定义中文转换的数组
+        $digital = array('零', '壹', '贰', '叁', '肆', '伍', '陆', '柒', '捌', '玖');
+        // 预定义单位转换的数组
+        $position = array('仟', '佰', '拾', '亿', '仟', '佰', '拾', '万', '仟', '佰', '拾', '元');
      
-        // ��������ֵ�ַ�����ֳ�����
+        // 将金额的数值字符串拆分成数组
         $amountArr = explode('.', $amount);
      
-        // ������λ����ֵ�ַ�����ֳ�����
+        // 将整数位的数值字符串拆分成数组
         $integerArr = str_split($amountArr[0], 1);
      
-        // �����������滻�ɴ�д����
+        // 将整数部分替换成大写汉字
         $result = '';
-        $integerArrLength = count($integerArr);     // ����λ����ĳ���
-        $positionLength = count($position);         // ��λ����ĳ���
+        $integerArrLength = count($integerArr);     // 整数位数组的长度
+        $positionLength = count($position);         // 单位数组的长度
         for($i = 0; $i < $integerArrLength; $i++) {
-            // �����ֵ��Ϊ0,������ת��
+            // 如果数值不为0,则正常转换
             if($integerArr[$i] != 0){
                 $result = $result . $digital[$integerArr[$i]] . $position[$positionLength - $integerArrLength + $i];
             }else{
-                // �����ֵΪ0, �ҵ�λ����,��,Ԫ��������ʱ��,��ֱ����ʾ��λ
+                // 如果数值为0, 且单位是亿,万,元这三个的时候,则直接显示单位
                 if(($positionLength - $integerArrLength + $i + 1)%4 == 0){
                     $result = $result . $position[$positionLength - $integerArrLength + $i];
                 }
             }
         }
      
-        // ���С��λҲҪת��
+        // 如果小数位也要转换
         if($type == 0) {
-            // ��С��λ����ֵ�ַ�����ֳ�����
+            // 将小数位的数值字符串拆分成数组
             $decimalArr = str_split($amountArr[1], 1);
-            // �����滻�ɴ�д����. ���Ϊ0,���滻
+            // 将角替换成大写汉字. 如果为0,则不替换
             if($decimalArr[0] != 0){
-                $result = $result . $digital[$decimalArr[0]] . '��';
+                $result = $result . $digital[$decimalArr[0]] . '角';
             }
-            // �����滻�ɴ�д����. ���Ϊ0,���滻
+            // 将分替换成大写汉字. 如果为0,则不替换
             if($decimalArr[1] != 0){
-                $result = $result . $digital[$decimalArr[1]] . '��';
+                $result = $result . $digital[$decimalArr[1]] . '分';
             }
         }else{
-            $result = $result . '��';
+            $result = $result . '整';
         }
         return $result;
     }

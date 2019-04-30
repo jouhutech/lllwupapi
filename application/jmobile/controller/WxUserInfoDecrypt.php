@@ -8,10 +8,11 @@ use think\Loader;
 
 class WxUserInfoDecrypt extends Common {
 
-	private 	$appid	= 	'wx0e80f191273e8063';
-	private	    $secret	=	'ded7c73cc2e1408d47d01a612bdb20f9';
 
-
+    public function __construct(){
+        parent::__construct();   
+       
+    }
 
 	/**
 	 * 检验数据的真实性，并且获取解密后的明文.
@@ -22,10 +23,13 @@ class WxUserInfoDecrypt extends Common {
 	 */
     public function dateCrypt()
     {
+        
+                $appid	= 	config('wx_setting.appid');
+                $secret	=	config('wx_setting.secret');
 
 		$get_result 	= 	file_get_contents("php://input");
 		$get_result		=	json_decode($get_result,true);
-
+             
 		$js_code    	=	$get_result['js_code'];
 		$iv 			=	$get_result['iv'];
 		$encryptedData	=	$get_result['encryptedData'];
@@ -34,16 +38,17 @@ class WxUserInfoDecrypt extends Common {
 		//$encryptedData	=	'qtCl4p2axF5Vy80JQp77v/tNaBWb/6ponr2d5faBWbgUOKAterdcw8YFWzb3kKaU7QE7TqElz1XGnQ2XP2A5k/e/UR72BV0TyaTZhicBooqeEUV3Xmi0mQHrkFZTes4p2bKhU2H0DPP5IDCF/3uLscDWCl0bICbviSmEVzN+iKEN5RgS2vR6QUML/MvFumvPMukc7pPyw6KAmJGRTDIHfskQXSOkmKyCErlWgaSCc4/1iQksuDZ8OUa6LSHqd38JQZl9dPKW5zwevUsMJJGhRJZOeNAkYri1K9nGIZSl0Tqb9i/r4GhvqpAQHYH5mU8QKn4h8ZEsr58L0J5MwAii64fwqHn67vXIVWfomdMBWnc53xfxIUoaH1xPAtkGTCgK/TDZMhJ6WnbPzx/1FQ2kJQIhWZmj5e8S875NlWOHqeIaaVFqae57uqx9EzlIO1LiuaTnuWsxnRVlZj2qqc8ZAmsg0VHdDHQpgHWVJMyvWqE=';
 
 
-		$url='https://api.weixin.qq.com/sns/jscode2session?appid='.$this->appid.'&secret='.$this->secret.'&js_code='.$js_code.'&grant_type=authorization_code';
+		$url='https://api.weixin.qq.com/sns/jscode2session?appid='.$appid.'&secret='.$secret.'&js_code='.$js_code.'&grant_type=authorization_code';
+          
 		$get_sessionkey=$this->curl($url);
-		
+
 
 		$curl_data=json_decode($get_sessionkey,true);
 		
 
 		$sessionKey = $curl_data['session_key'];// string 用户在小程序登录后获取的会话密钥
                 import('wxBizDataCrypt.wxBizDataCrypt');
-		$pc = new \wxBizDataCrypt($this->appid,$sessionKey);
+		$pc = new \wxBizDataCrypt($appid,$sessionKey);
 
 		$errCode = $pc->decryptData($encryptedData, $iv, $data );
 
@@ -55,8 +60,11 @@ class WxUserInfoDecrypt extends Common {
 
 
     }
+    
+   
 
-    function curl($url,$data = null){
+
+    public function curl($url,$data = null){
 		$curl = curl_init();
 		curl_setopt($curl, CURLOPT_URL, $url);
 		curl_setopt($curl, CURLOPT_HTTPHEADER, array('Content-Type:application/json'));

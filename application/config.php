@@ -242,4 +242,17 @@ return [
     ],
     //目录
     'root_path'=> 'http://ntest.loulilouwai.com.cn',
+    //oauth数据凭证
+    'client_auth' =>  [
+        'grant_type'      => 'client_credentials',
+        'client_id'  => 'test',
+        'client_secret' => 'test',
+    ],
+    //微信相关数据
+    'wx_setting' =>  [
+        'appid'      => 'wx0e80f191273e8063',
+        'secret'  => 'ded7c73cc2e1408d47d01a612bdb20f9',
+        'mch_id' => '1526381861',
+        'wxpay_key' => 'c5594d069baca14fd37d7383863bfe30',
+    ],
 ];
