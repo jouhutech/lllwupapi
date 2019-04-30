@@ -244,7 +244,6 @@ return [
     'root_path'=> 'http://ntest.loulilouwai.com.cn',
     //oauth数据凭证
     'client_auth' =>  [
-        'grant_type'      => 'client_credentials',
         'client_id'  => 'test',
         'client_secret' => 'test',
     ],
