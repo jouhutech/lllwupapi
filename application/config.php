@@ -250,9 +250,9 @@ return [
     ],
     //微信相关数据
     'wx_setting' =>  [
-        'appid'      => 'wx0e80f191273e8063',
-        'secret'  => 'ded7c73cc2e1408d47d01a612bdb20f9',
-        'mch_id' => '1526381861',
-        'wxpay_key' => 'c5594d069baca14fd37d7383863bfe30',
+        'appid'      => '',
+        'secret'  => '',
+        'mch_id' => '',
+        'wxpay_key' => '',
     ],
 ];
