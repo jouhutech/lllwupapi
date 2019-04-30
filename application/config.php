@@ -245,8 +245,8 @@ return [
     //oauth数据凭证
     'client_auth' =>  [
         'grant_type'      => 'client_credentials',
-        'client_id'  => 'test',
-        'client_secret' => 'test',
+        'client_id'  => '',
+        'client_secret' => '',
     ],
     //微信相关数据
     'wx_setting' =>  [
