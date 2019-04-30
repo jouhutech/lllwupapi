@@ -73,7 +73,7 @@ class PersonalCenter extends Common {
      */
     public function getBuildingList(){
 
-        $res_room = $this->callApi('estate/getBuildingList', array(''),'GET');
+        $res_room = $this->callApi('estate/getBuildingList', array(),'GET');
         if($res_room['status']==1){
             print_r($this->returnJson($res_room['data'],'成功',1)); 
         }else{
