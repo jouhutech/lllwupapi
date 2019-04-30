@@ -97,6 +97,8 @@ class Common extends Controller {
                 curl_setopt($curl, CURLOPT_URL, $url);
                 curl_setopt($curl, CURLOPT_HTTPGET, true);break;
             case "POST":
+                curl_setopt($curl, CURLOPT_SSL_VERIFYHOST, 0);
+                                                curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, 0);
                 curl_setopt($curl, CURLOPT_POST,true);
                 curl_setopt($curl, CURLOPT_POSTFIELDS,json_encode($params));break;
             case "PUT" :
