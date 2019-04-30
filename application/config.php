@@ -241,7 +241,7 @@ return [
         'list_rows' => 15,
     ],
     //目录
-    'root_path'=> 'http://ntest.loulilouwai.com.cn',
+    'root_path'=> 'https://n.loulilouwai.net',
     //oauth数据凭证
     'client_auth' =>  [
         'grant_type'      => 'client_credentials',
