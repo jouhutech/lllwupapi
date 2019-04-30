@@ -32,8 +32,10 @@ class Village extends Common {
             }else{
                 if($res_room['data']['property_fee_endtime']==0){
                     $user_village['data']['user_village']['property_fee_endtime'] = date('Y-m-d',$res_room['data']['coming_time']);
+                    $user_village['data']['user_village']['property_fee_next_starttime'] = date('Y-m-d',strtotime("+1 day",$res_room['data']['coming_time']));
                 }else{
                     $user_village['data']['user_village']['property_fee_endtime'] = date('Y-m-d',$res_room['data']['property_fee_endtime']);
+                    $user_village['data']['user_village']['property_fee_next_starttime'] = date('Y-m-d',strtotime("+1 day",$res_room['data']['property_fee_endtime']));
                 }
             }
 

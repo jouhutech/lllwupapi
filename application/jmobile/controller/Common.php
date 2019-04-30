@@ -44,7 +44,6 @@ class Common extends Controller {
         
             
         if (time() > ($file_result['expires'] - 10)){          //token过期, 重新获取
-            $post_data['grant_type'] = config('client_auth.grant_type');
             $post_data['client_id'] = config('client_auth.client_id');
             $post_data['client_secret'] = config('client_auth.client_secret');
 

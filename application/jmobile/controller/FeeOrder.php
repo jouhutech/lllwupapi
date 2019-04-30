@@ -36,9 +36,14 @@ class FeeOrder extends Common {
             print_r($this->returnJson(array(),$res_room['message'],0)); 
             die;
         }else{
+
+            
             if($res_room['data']['property_fee_endtime']==0){
-                $res_room['data']['property_fee_endtime'] = $res_room['data']['coming_time'];
+                $res_room['data']['property_fee_endtime'] = strtotime("+1 day",$res_room['data']['coming_time']);
+            }else{
+                $res_room['data']['property_fee_endtime'] = strtotime("+1 day",$res_room['data']['property_fee_endtime']);
             }
+            
         }
      
 
@@ -186,7 +191,7 @@ class FeeOrder extends Common {
         $mch_id =       config('wx_setting.mch_id');
         $KEY = config('wx_setting.wxpay_key');
         $nonce_str =    md5(uniqid(microtime(true),true));//随机字符串32
-        $notify_url =   'http://jouhu.com/lllwupapi/public/index.php/jmobile/fee_order/xiao_notify_url';  //支付完成回调地址url,不能带参数
+        $notify_url =   'https://jouhu.com/lllwupapi/public/index.php/jmobile/fee_order/xiao_notify_url';  //支付完成回调地址url,不能带参数
         $out_trade_no = $post['order_number'];//商户订单号
         $spbill_create_ip = $_SERVER['SERVER_ADDR'];
         $trade_type = 'JSAPI';//交易类型 默认JSAPI
@@ -351,6 +356,7 @@ class FeeOrder extends Common {
             $post = isset($GLOBALS['HTTP_RAW_POST_DATA']) ? $GLOBALS['HTTP_RAW_POST_DATA'] : '';
         }
         
+                
         if (empty($post) || $post == null || $post == '') {
             //阻止微信接口反复回调接口  文档地址 https://pay.weixin.qq.com/wiki/doc/api/H5.php?chapter=9_7&index=7，下面这句非常重要!!!
             $str='<xml><return_code><![CDATA[SUCCESS]]></return_code><return_msg><![CDATA[OK]]></return_msg></xml>';  
@@ -409,14 +415,17 @@ class FeeOrder extends Common {
         //重新生成签名
         $newSign = $this->MakeSign($post_data,$wxpay_key);
 
+        
+            
         //签名统一，则更新数据库
         if($post_sign == $newSign){
-            $attach = explode(',', $post_data['attach']);
+            $attach = explode('-|', $post_data['attach']);
             $data = array();
             $data['fee_order_id'] = $attach['0'];
             $data['out_trade_no'] = $post_data['out_trade_no'];
-            $data['wechat_transaction_id'] = $post_data['wechat_transaction_id'];
+            $data['wechat_transaction_id'] = $post_data['transaction_id'];
             $wxUpOrder = $this->callApi('fee_order/wxUpOrder', $data, 'PUT');
+           
             //print_r($res);die;
             if($wxUpOrder['status'] == 1){
                 //阻止微信接口反复回调接口  文档地址 https://pay.weixin.qq.com/wiki/doc/api/H5.php?chapter=9_7&index=7，下面这句非常重要!!!
